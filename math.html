@@ -20,7 +20,7 @@
     }
 
     /* ── Sélecteur de niveau ─── */
-    .level-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+    .level-bar { display: flex; gap: 10px; margin-bottom: 12px; }
     .level-btn {
       font-family: 'Fredoka One', sans-serif;
       font-size: 0.95rem;
@@ -40,6 +40,84 @@
       box-shadow: 0 3px 0 #4c1d95;
     }
 
+    /* ── Sélecteur d'opérations ─── */
+    .ops-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .ops-btn {
+      font-family: 'Fredoka One', sans-serif;
+      font-size: 0.9rem;
+      border-radius: 50px;
+      padding: 9px 20px;
+      cursor: pointer;
+      border: 3px solid;
+      opacity: 0.38;
+      transition: all 0.15s;
+    }
+    .ops-btn.active { opacity: 1; }
+    .ops-btn:disabled { opacity: 0.15; cursor: default; }
+    .ops-btn.op-add         { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+    .ops-btn.op-add.active  { background: #3b82f6; color: #fff;    border-color: #1d4ed8; box-shadow: 0 3px 0 #1e40af; }
+    .ops-btn.op-sub         { background: #fce7f3; color: #9d174d; border-color: #f9a8d4; }
+    .ops-btn.op-sub.active  { background: #ec4899; color: #fff;    border-color: #9d174d; box-shadow: 0 3px 0 #831843; }
+    .ops-btn.op-mul         { background: #fef9c3; color: #92400e; border-color: #fde68a; }
+    .ops-btn.op-mul.active  { background: #f59e0b; color: #fff;    border-color: #d97706; box-shadow: 0 3px 0 #b45309; }
+
+    /* ── Sélecteur de table ─── */
+    .table-bar {
+      display: none; /* affiché par JS quand × est sélectionné */
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .table-label {
+      font-family: 'Fredoka One', sans-serif;
+      font-size: 0.9rem;
+      color: #9c7bbf;
+      margin-right: 2px;
+    }
+    .table-btn {
+      font-family: 'Fredoka One', sans-serif;
+      font-size: 0.95rem;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid #c9b8e8;
+      background: rgba(255,255,255,0.65);
+      color: #7c3aed;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .table-btn.free {
+      width: auto;
+      padding: 0 14px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      color: #9c7bbf;
+    }
+    .table-btn:hover { background: rgba(255,255,255,0.9); }
+    .table-btn.active {
+      background: #f59e0b;
+      color: #fff;
+      border-color: #d97706;
+      box-shadow: 0 3px 0 #b45309;
+    }
+    .table-btn.free.active {
+      background: rgba(255,255,255,0.65);
+      color: #9c7bbf;
+      border-color: #c9b8e8;
+      box-shadow: none;
+    }
+
     /* ── Grille ─── */
     .game { display: flex; flex-direction: column; align-items: center; }
 
@@ -54,8 +132,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(7, 61px);
-      grid-template-rows: repeat(7, 61px);
+      /* taille définie dynamiquement par JS selon le niveau */
       gap: 3px;
       background: #c9b8e8;
       border-radius: 14px;
@@ -125,7 +202,7 @@
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
     }
 
-    /* ── Bouton reset ─── */
+/* ── Bouton reset ─── */
     .btn-reset {
       font-family: 'Fredoka One', sans-serif;
       font-size: 1.1rem;
@@ -173,9 +250,9 @@
       max-width: 360px;
       width: 92%;
       text-align: center;
-      animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: shade-in 0.25s ease-out;
     }
-    @keyframes pop-in { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes shade-in { from { opacity: 0; } to { opacity: 1; } }
     .math-modal.shake { animation: shake 0.4s ease; }
     @keyframes shake {
       0%,100% { transform: translateX(0); }
@@ -226,6 +303,15 @@
     .ans-btn.c3 { background: #fed7aa; color: #9a3412; border-bottom-color: #fdba74; }
     .ans-btn.correct { background: #bbf7d0 !important; color: #065f46 !important; border-bottom-color: #34d399 !important; }
     .ans-btn.wrong   { background: #fecaca !important; color: #991b1b !important; border-bottom-color: #f87171 !important; }
+
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
@@ -234,6 +320,27 @@
     <button class="level-btn active" id="lvl1" onclick="setLevel(1)">⭐ CP</button>
     <button class="level-btn"        id="lvl2" onclick="setLevel(2)">⭐⭐ CE1</button>
     <button class="level-btn"        id="lvl3" onclick="setLevel(3)">⭐⭐⭐ CE2</button>
+  </div>
+
+  <div class="ops-bar">
+    <button class="ops-btn op-add active" id="opAdd" onclick="toggleOp('+')">＋ Addition</button>
+    <button class="ops-btn op-sub active" id="opSub" onclick="toggleOp('-')">－ Soustraction</button>
+    <button class="ops-btn op-mul"        id="opMul" onclick="toggleOp('×')" disabled>× Multiplication</button>
+  </div>
+
+  <div class="table-bar" id="tableBar">
+    <span class="table-label">Table ×</span>
+    <button class="table-btn free active" id="tbl0" onclick="setTable(0)">Libre</button>
+    <button class="table-btn" id="tbl1"  onclick="setTable(1)">1</button>
+    <button class="table-btn" id="tbl2"  onclick="setTable(2)">2</button>
+    <button class="table-btn" id="tbl3"  onclick="setTable(3)">3</button>
+    <button class="table-btn" id="tbl4"  onclick="setTable(4)">4</button>
+    <button class="table-btn" id="tbl5"  onclick="setTable(5)">5</button>
+    <button class="table-btn" id="tbl6"  onclick="setTable(6)">6</button>
+    <button class="table-btn" id="tbl7"  onclick="setTable(7)">7</button>
+    <button class="table-btn" id="tbl8"  onclick="setTable(8)">8</button>
+    <button class="table-btn" id="tbl9"  onclick="setTable(9)">9</button>
+    <button class="table-btn" id="tbl10" onclick="setTable(10)">10</button>
   </div>
 
   <div class="game">
@@ -248,6 +355,8 @@
     <button class="btn-reset" onclick="doReset()">🔄 Nouveau labyrinthe</button>
   </div>
 
+  <canvas id="confetti-canvas"></canvas>
+
   <!-- Modal maths -->
   <div class="math-overlay" id="mathOverlay" style="display:none">
     <div class="math-modal" id="mathModal">
@@ -258,14 +367,20 @@
   </div>
 
   <script>
-    const ROWS = 7, COLS = 7;
-    const START    = { row: 6, col: 0 };
-    const TREASURE = { row: 6, col: 6 };
+    let ROWS, COLS, START, TREASURE;
+
+    function updateGridDimensions() {
+      ROWS = COLS = level === 1 ? 5 : level === 2 ? 6 : 7;
+      START    = { row: ROWS - 1, col: 0 };
+      TREASURE = { row: 0,        col: COLS - 1 };
+    }
     const CELL = 61, GAP = 3, STEP = CELL + GAP;
     const DELTA  = [[-1,0],[0,1],[1,0],[0,-1]];
     const ANGLES = [0, 90, 180, 270];
 
     let level = 1;
+    let tableFilter  = 0;              // 0 = libre, 1-10 = table spécifique
+    let selectedOps  = new Set(['+', '-']); // opérations actives
     let MAZE, PATH, problems;
     let pathIdx = 0;
     let robotDir = 1;
@@ -286,20 +401,50 @@
 
     /* ── Génération du labyrinthe ─── */
     function generateMaze() {
-      const g = Array.from({length: ROWS}, () => Array(COLS).fill(1));
-      const seen = new Set();
-      function carve(r, c) {
-        g[r][c] = 0; seen.add(r * COLS + c);
-        for (const [dr, dc] of shuffle([[-2,0],[2,0],[0,-2],[0,2]])) {
-          const nr = r + dr, nc = c + dc;
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !seen.has(nr * COLS + nc)) {
-            g[r + dr/2][c + dc/2] = 0;
-            carve(nr, nc);
-          }
-        }
+      const total  = ROWS * COLS;
+      const minLen = Math.round(total * 0.40);
+      const maxLen = Math.round(total * 0.60);
+
+      for (let attempt = 0; attempt < 120; attempt++) {
+        const result = tryBuildPath(minLen, maxLen);
+        if (result) return result;
       }
-      carve(START.row, START.col);
-      return g;
+      // Fallback: accept any valid path
+      return tryBuildPath(1, total);
+    }
+
+    function tryBuildPath(minLen, maxLen) {
+      const g       = Array.from({length: ROWS}, () => Array(COLS).fill(1));
+      const visited = new Set();
+      let   done    = false;
+      let   steps   = 0;
+
+      function dfs(r, c, depth) {
+        if (done || depth > maxLen || steps > 60000) return;
+        steps++;
+        g[r][c] = 0;
+        visited.add(r * COLS + c);
+
+        if (r === TREASURE.row && c === TREASURE.col) {
+          if (depth >= minLen) { done = true; return; }
+          // Too short: unmark and keep looking for a longer path
+          g[r][c] = 1;
+          visited.delete(r * COLS + c);
+          return;
+        }
+
+        for (const [dr, dc] of shuffle([...DELTA])) {
+          if (done) return;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited.has(nr * COLS + nc))
+            dfs(nr, nc, depth + 1);
+        }
+
+        if (!done) { g[r][c] = 1; visited.delete(r * COLS + c); }
+      }
+
+      dfs(START.row, START.col, 1);
+      return done ? g : null;
     }
 
     /* ── BFS : chemin de départ au trésor ─── */
@@ -334,11 +479,19 @@
 
     /* ── Génération des opérations ─── */
     function makeProblem() {
-      const pool =
-        level === 1 ? ['+', '+', '-'] :
-        level === 2 ? ['+', '+', '-', '×'] :
-                      ['+', '-', '×', '×'];
-      const op = pool[Math.floor(Math.random() * pool.length)];
+      // Mode table spécifique
+      if (tableFilter > 0) {
+        const b = rand(1, 10);
+        return {
+          label: `${tableFilter}×${b}`,
+          equation: `${tableFilter} × ${b}`,
+          answer: tableFilter * b,
+          cls: 'op-mul'
+        };
+      }
+
+      const ops = [...selectedOps];
+      const op  = ops[Math.floor(Math.random() * ops.length)];
       let a, b;
       if (op === '+') {
         const max = level === 1 ? 9 : level === 2 ? 15 : 25;
@@ -347,7 +500,6 @@
         const max = level === 1 ? 10 : level === 2 ? 20 : 30;
         a = rand(2, max); b = rand(1, a);
       } else {
-        // Tables de multiplication : un facteur = table apprise, l'autre = 1..10
         const tableMax = level === 2 ? 5 : 10;
         a = rand(2, tableMax); b = rand(1, 10);
       }
@@ -369,22 +521,11 @@
 
     function assignProblems() {
       problems = Array.from({length: ROWS}, () => Array(COLS).fill(null));
-      // ~60 % des cases du chemin (hors départ et trésor) ont un calcul
-      for (let i = 1; i < PATH.length - 1; i++) {
-        if (Math.random() < 0.6) {
-          const { r, c } = PATH[i];
-          problems[r][c] = makeProblem();
-        }
-      }
-      // Au moins 3 calculs
-      let count = PATH.slice(1, -1).filter(p => problems[p.r][p.c]).length;
-      while (count < 3) {
-        const i = rand(1, PATH.length - 2);
-        if (!problems[PATH[i].r][PATH[i].c]) {
-          problems[PATH[i].r][PATH[i].c] = makeProblem();
-          count++;
-        }
-      }
+      // Exactement 50 % des cases du chemin (hors départ et trésor)
+      const pathCells = PATH.slice(1, -1);
+      const target    = Math.round(pathCells.length * 0.5);
+      const chosen    = shuffle([...pathCells]).slice(0, target);
+      chosen.forEach(({ r, c }) => { problems[r][c] = makeProblem(); });
     }
 
     /* ── Construction de la grille ─── */
@@ -393,6 +534,8 @@
     function buildGrid() {
       pathSet = new Set(PATH.map(p => p.r * COLS + p.c));
       const g = document.getElementById('grid');
+      g.style.gridTemplateColumns = `repeat(${COLS}, ${CELL}px)`;
+      g.style.gridTemplateRows    = `repeat(${ROWS}, ${CELL}px)`;
       g.querySelectorAll('.cell').forEach(el => el.remove());
       const frag = document.createDocumentFragment();
 
@@ -509,7 +652,73 @@
       }
       pathIdx = PATH.length - 1;
       document.getElementById('winMsg').style.display = 'block';
+      launchConfetti();
       busy = false;
+    }
+
+    /* ── Confettis ─── */
+    let _cRaf = null;
+
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx    = canvas.getContext('2d');
+      const W      = canvas.width  = window.innerWidth;
+      const H      = canvas.height = window.innerHeight;
+      const COLORS = ['#f59e0b','#ec4899','#3b82f6','#10b981','#8b5cf6','#ef4444','#06b6d4','#84cc16'];
+      const COUNT  = 160;
+
+      const particles = Array.from({length: COUNT}, () => ({
+        x:    W * 0.1 + Math.random() * W * 0.8,
+        y:    H + 10,
+        vx:   (Math.random() - 0.5) * 14,
+        vy:   -(8 + Math.random() * 18),
+        rot:  Math.random() * Math.PI * 2,
+        drot: (Math.random() - 0.5) * 0.22,
+        w:    6 + Math.random() * 8,
+        h:    3 + Math.random() * 5,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        circle: Math.random() < 0.25,
+      }));
+
+      const startTime = performance.now();
+      const DURATION  = 4200;
+
+      function draw(ts) {
+        const elapsed = ts - startTime;
+        ctx.clearRect(0, 0, W, H);
+        let alive = false;
+
+        for (const p of particles) {
+          p.x   += p.vx;
+          p.y   += p.vy;
+          p.vy  += 0.07;
+          p.rot += p.drot;
+          if (p.y < H + 20) alive = true;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.color;
+          if (p.circle) {
+            ctx.beginPath();
+            ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          }
+          ctx.restore();
+        }
+
+        if (alive && elapsed < DURATION) {
+          _cRaf = requestAnimationFrame(draw);
+        } else {
+          ctx.clearRect(0, 0, W, H);
+          _cRaf = null;
+        }
+      }
+
+      if (_cRaf) { cancelAnimationFrame(_cRaf); _cRaf = null; }
+      _cRaf = requestAnimationFrame(draw);
     }
 
     /* ── Modal de maths ─── */
@@ -553,20 +762,75 @@
     function doReset() {
       busy = false;
       document.getElementById('winMsg').style.display = 'none';
+      updateGridDimensions();
       MAZE  = generateMaze();
       PATH  = findPath();
       assignProblems();
       buildGrid();
     }
 
+    function toggleOp(op) {
+      if (selectedOps.has(op)) {
+        if (selectedOps.size === 1) return; // au moins une opération requise
+        selectedOps.delete(op);
+        if (op === '×') { tableFilter = 0; updateTableUI(); }
+      } else {
+        selectedOps.add(op);
+      }
+      document.getElementById(op === '+' ? 'opAdd' : op === '-' ? 'opSub' : 'opMul')
+        .classList.toggle('active', selectedOps.has(op));
+      updateTableBar();
+      doReset();
+    }
+
+    function updateTableBar() {
+      const show = selectedOps.has('×') && level > 1;
+      document.getElementById('tableBar').style.display = show ? 'flex' : 'none';
+      if (!show) { tableFilter = 0; updateTableUI(); }
+    }
+
+    function updateTableUI() {
+      for (let i = 0; i <= 10; i++) {
+        document.getElementById('tbl' + i)?.classList.toggle('active', i === tableFilter);
+      }
+    }
+
     function setLevel(n) {
       level = n;
       [1, 2, 3].forEach(i =>
         document.getElementById('lvl' + i).classList.toggle('active', i === n));
+
+      const mulBtn = document.getElementById('opMul');
+      if (n === 1) {
+        // CP : pas de multiplication
+        selectedOps.delete('×');
+        tableFilter = 0;
+        mulBtn.disabled = true;
+        mulBtn.classList.remove('active');
+        // S'assurer qu'au moins + ou - est actif
+        if (selectedOps.size === 0) selectedOps.add('+');
+      } else {
+        mulBtn.disabled = false;
+      }
+      // Rafraîchir les boutons + et -
+      document.getElementById('opAdd').classList.toggle('active', selectedOps.has('+'));
+      document.getElementById('opSub').classList.toggle('active', selectedOps.has('-'));
+      updateTableBar();
+      doReset();
+    }
+
+    function setTable(n) {
+      tableFilter = n;
+      for (let i = 0; i <= 10; i++) {
+        const el = document.getElementById('tbl' + i);
+        if (el) el.classList.toggle('active', i === n);
+      }
       doReset();
     }
 
     /* ── Init ─── */
+    updateGridDimensions();
+    updateTableBar();
     MAZE  = generateMaze();
     PATH  = findPath();
     assignProblems();

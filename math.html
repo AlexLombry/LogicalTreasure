@@ -347,8 +347,9 @@
         const max = level === 1 ? 10 : level === 2 ? 20 : 30;
         a = rand(2, max); b = rand(1, a);
       } else {
-        const max = level === 2 ? 5 : 9;
-        a = rand(2, max); b = rand(2, max);
+        // Tables de multiplication : un facteur = table apprise, l'autre = 1..10
+        const tableMax = level === 2 ? 5 : 10;
+        a = rand(2, tableMax); b = rand(1, 10);
       }
       const answer = op === '+' ? a + b : op === '-' ? a - b : a * b;
       const cls    = op === '+' ? 'op-add' : op === '-' ? 'op-sub' : 'op-mul';

@@ -73,9 +73,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 36px;
       transition: left 0.22s ease, top 0.22s ease, transform 0.18s ease;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+    .robot::after {
+      content: '';
+      display: block;
+      width: 34px;
+      height: 50px;
+      background: #7c3aed;
+      clip-path: polygon(50% 0%, 100% 45%, 67% 45%, 67% 100%, 33% 100%, 33% 45%, 0% 45%);
+      filter: drop-shadow(0 3px 5px rgba(124,58,237,0.45));
     }
 
     .trophy {
@@ -213,7 +220,7 @@
     <div class="grid-card">
       <div class="grid" id="grid">
         <div class="trophy" id="trophy">🏆</div>
-        <div class="robot"  id="robot">🚀</div>
+        <div class="robot"  id="robot"></div>
       </div>
     </div>
 

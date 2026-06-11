@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cherche le trésor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f2f2f7;
+      color: #1c1c1e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #1c1c1e;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      max-width: 480px;
+      margin-bottom: 36px;
+      color: #8e8e93;
+    }
+
+    /* ── Grid ──────────────────────────────────── */
+    .game { display: flex; flex-direction: column; align-items: center; }
+
+    .grid-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+      margin-bottom: 28px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 61px);
+      grid-template-rows: repeat(7, 61px);
+      gap: 3px;
+      background: #d1d1d6;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cell { background: #ffffff; }
+    .cell.wall { background: #1c1c1e; }
+
+    /* ── Robot (flèche via clip-path) ──────────── */
+    .robot {
+      position: absolute;
+      width: 61px;
+      height: 61px;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: left 0.22s ease, top 0.22s ease, transform 0.18s ease;
+    }
+    .robot::after {
+      content: '';
+      display: block;
+      width: 30px;
+      height: 44px;
+      background: #007aff;
+      clip-path: polygon(50% 0%, 100% 44%, 65% 44%, 65% 100%, 35% 100%, 35% 44%, 0% 44%);
+    }
+
+    .trophy {
+      position: absolute;
+      width: 61px;
+      height: 61px;
+      pointer-events: none;
+      z-index: 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+    }
+
+    /* ── Boutons de commande ────────────────────── */
+    .controls { display: flex; gap: 10px; margin-bottom: 18px; }
+
+    .btn {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+    .btn-move { background: #007aff; color: #fff; }
+    .btn-turn { background: #ff3b30; color: #fff; }
+
+    /* ── Puces de commandes ─────────────────────── */
+    .cmd-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 580px;
+      justify-content: center;
+      padding: 10px;
+      min-height: 72px;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: none;
+      background: #e5e5ea;
+      color: #3a3a3c;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
+    }
+    .chip:hover { background: #d1d1d6; }
+    .chip:active { transform: scale(0.95); }
+    .chip.active { background: #ff9500; color: #fff; cursor: default; transform: none; }
+    .chip.error  { background: #ff3b30; color: #fff; cursor: default; transform: none; }
+
+    /* ── Bouton Lancer / Recommencer ───────────── */
+    .btn-run {
+      background: #34c759;
+      color: #fff;
+      padding: 14px 56px;
+      font-size: 0.95rem;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 10px rgba(52,199,89,0.3);
+    }
+    .btn-run.is-reset {
+      background: #ff9500;
+      box-shadow: 0 2px 10px rgba(255,149,0,0.3);
+    }
+
+    .win-msg {
+      color: #34c759;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .tip {
+      font-size: 0.72rem;
+      color: #aeaeb2;
+      letter-spacing: -0.01em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cherche le trésor</h1>
+  <p class="subtitle">
+    Tu contrôles le robot en bas à gauche. En combinant deux instructions,
+    atteins le trésor en bas à droite sans quitter le chemin.
+  </p>
+
+  <div class="game">
+    <div class="grid-card">
+      <div class="grid" id="grid">
+        <div class="trophy" id="trophy">🏆</div>
+        <div class="robot"  id="robot"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-move" id="btnMove" onclick="addCmd('Move')">AVANCER</button>
+      <button class="btn btn-turn" id="btnTurn" onclick="addCmd('Turn')">TOURNER À DROITE</button>
+    </div>
+
+    <div class="cmd-list" id="cmdList"></div>
+
+    <div class="win-msg" id="winMsg" style="display:none">
+      Trésor trouvé ! Appuie sur Recommencer pour un nouveau labyrinthe.
+    </div>
+
+    <button class="btn btn-run" id="btnRun" onclick="runOrReset()">LANCER</button>
+    <p class="tip">Clique sur une instruction pour la retirer de la liste</p>
+  </div>
+
+  <script>
+    const ROWS = 7, COLS = 7;
+    const START    = { row: 6, col: 0 };
+    const TREASURE = { row: 6, col: 6 };
+    const CELL = 61, GAP = 3, STEP = CELL + GAP; // 64px par case
+
+    // 0=Nord 1=Est 2=Sud 3=Ouest
+    const DELTA  = [[-1,0],[0,1],[1,0],[0,-1]];
+    const ANGLES = [0, 90, 180, 270];
+
+    const LABELS = { Move: 'Avancer', Turn: 'Tourner' };
+
+    /* ── Génération du labyrinthe (DFS backtracking) ── */
+    function shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function generateMaze() {
+      const g = Array.from({length: ROWS}, () => Array(COLS).fill(1));
+      const seen = new Set();
+
+      function carve(r, c) {
+        g[r][c] = 0;
+        seen.add(r * COLS + c);
+        for (const [dr, dc] of shuffle([[-2,0],[2,0],[0,-2],[0,2]])) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !seen.has(nr * COLS + nc)) {
+            g[r + dr / 2][c + dc / 2] = 0;
+            carve(nr, nc);
+          }
+        }
+      }
+
+      carve(START.row, START.col);
+      return g;
+    }
+
+    /* ── État du jeu ────────────────────────────── */
+    let MAZE = generateMaze();
+    let cmds = [];
+    let running = false, crashed = false, won = false;
+
+    /* ── Construction / reconstruction de la grille ── */
+    function buildGrid() {
+      const g = document.getElementById('grid');
+      g.querySelectorAll('.cell').forEach(el => el.remove());
+      const frag = document.createDocumentFragment();
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const d = document.createElement('div');
+          d.className = 'cell' + (MAZE[r][c] ? ' wall' : '');
+          frag.appendChild(d);
+        }
+      g.prepend(frag);
+      posSprite('trophy', TREASURE.row, TREASURE.col);
+      posSprite('robot',  START.row,    START.col, 0);
+    }
+
+    function posSprite(id, row, col, dir) {
+      const el = document.getElementById(id);
+      el.style.left = col * STEP + 'px';
+      el.style.top  = row * STEP + 'px';
+      if (dir !== undefined)
+        el.style.transform = `rotate(${ANGLES[dir]}deg)`;
+    }
+
+    /* ── Liste de commandes ─────────────────────── */
+    function renderCmds(active = -1, errIdx = -1) {
+      const list = document.getElementById('cmdList');
+      list.innerHTML = '';
+      cmds.forEach((cmd, i) => {
+        const s = document.createElement('span');
+        s.className = 'chip' +
+          (i === active ? ' active' : '') +
+          (i === errIdx ? ' error'  : '');
+        s.textContent = LABELS[cmd];
+        if (!running) s.onclick = () => { cmds.splice(i, 1); renderCmds(); };
+        list.appendChild(s);
+      });
+    }
+
+    function addCmd(c) {
+      if (running || won) return;
+      cmds.push(c);
+      renderCmds();
+    }
+
+    /* ── Lancer / Recommencer ───────────────────── */
+    function runOrReset() {
+      if (crashed || won)          { doReset(); return; }
+      if (running || !cmds.length) return;
+      runProgram();
+    }
+
+    async function runProgram() {
+      running = true;
+      setBtns(true);
+
+      let r = START.row, c = START.col, dir = 0;
+      posSprite('robot', r, c, dir);
+
+      for (let i = 0; i < cmds.length; i++) {
+        renderCmds(i);
+        await sleep(320);
+
+        if (cmds[i] === 'Move') {
+          const [dr, dc] = DELTA[dir];
+          const nr = r + dr, nc = c + dc;
+          if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || MAZE[nr][nc]) {
+            renderCmds(-1, i);
+            doCrash();
+            return;
+          }
+          r = nr; c = nc;
+        } else {
+          dir = (dir + 1) % 4;
+        }
+
+        posSprite('robot', r, c, dir);
+
+        if (r === TREASURE.row && c === TREASURE.col) {
+          renderCmds();
+          await sleep(200);
+          doWin();
+          return;
+        }
+      }
+
+      running = false;
+      setBtns(false);
+      renderCmds();
+    }
+
+    function doCrash() {
+      crashed = true; running = false;
+      setRunBtn('RECOMMENCER', true);
+      setBtns(false);
+    }
+
+    function doWin() {
+      won = true; running = false;
+      document.getElementById('winMsg').style.display = 'block';
+      setRunBtn('RECOMMENCER', true);
+    }
+
+    function doReset() {
+      const wasWon = won;
+      crashed = won = running = false;
+      document.getElementById('winMsg').style.display = 'none';
+      setRunBtn('LANCER', false);
+      setBtns(false);
+      if (wasWon) {
+        cmds = [];
+        MAZE = generateMaze();
+        buildGrid();
+      } else {
+        posSprite('robot', START.row, START.col, 0);
+      }
+      renderCmds();
+    }
+
+    function setRunBtn(label, isReset) {
+      const btn = document.getElementById('btnRun');
+      btn.textContent = label;
+      btn.classList.toggle('is-reset', isReset);
+    }
+
+    function setBtns(disabled) {
+      document.getElementById('btnMove').disabled = disabled;
+      document.getElementById('btnTurn').disabled = disabled;
+    }
+
+    function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+    /* ── Init ──────────────────────────────────── */
+    buildGrid();
+    renderCmds();
+  </script>
+</body>
+</html>
